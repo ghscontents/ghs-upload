@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>GHS 업로드 가이드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: 한 줄 읽기 폭의 단일 컬럼 매뉴얼. 파일 이름·경로는 모노체 '태그'로, 단계는 실제 순서라 번호를 씀 */
+  :root {
+    --bg: #f6f7f8;
+    --surface: #ffffff;
+    --fg: #1b2228;
+    --muted: #5d6973;
+    --line: #dfe3e7;
+    --accent: #0f6b62;
+    --accent-soft: #e3f1ef;
+    --warn: #9a4a00;
+    --warn-soft: #fdf0e3;
+    --ok: #23733a;
+    --code-bg: #eef1f3;
+    --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12171b; --surface: #1a2126; --fg: #e6eaed; --muted: #9aa6b0; --line: #2b343b;
+      --accent: #5cc4b6; --accent-soft: #173431; --warn: #f0a75c; --warn-soft: #33261a; --ok: #6fcf8a;
+      --code-bg: #232c33; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12171b; --surface: #1a2126; --fg: #e6eaed; --muted: #9aa6b0; --line: #2b343b;
+    --accent: #5cc4b6; --accent-soft: #173431; --warn: #f0a75c; --warn-soft: #33261a; --ok: #6fcf8a;
+    --code-bg: #232c33; color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.7;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; display: grid; gap: 40px; }
+  h1, h2 { text-wrap: balance; line-height: 1.3; margin: 0; }
+  h1 { font-size: clamp(28px, 5vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 21px; font-weight: 600; }
+  p { margin: 0; }
+  code, .file {
+    font-family: var(--font-mono); font-size: 0.86em;
+    background: var(--code-bg); border-radius: 5px; padding: 1px 6px;
+    overflow-wrap: anywhere;
+  }
+  .eyebrow {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  header { display: grid; gap: 12px; }
+  .lede { color: var(--muted); font-size: 17px; max-width: 62ch; }
+  .route {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 13px; color: var(--muted);
+  }
+  .route span { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+  .route i { font-style: normal; color: var(--accent); }
+
+  section { display: grid; gap: 16px; }
+  .section-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .tag {
+    font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-soft);
+    border-radius: 999px; padding: 2px 10px;
+  }
+
+  ol.steps { list-style: none; counter-reset: step; margin: 0; padding: 0; display: grid; gap: 12px; }
+  ol.steps li {
+    counter-increment: step; display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start;
+  }
+  ol.steps li::before {
+    content: counter(step); display: grid; place-items: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent); color: var(--surface); font-weight: 600; font-size: 14px;
+    font-variant-numeric: tabular-nums; margin-top: 1px;
+  }
+  ol.steps li > div { min-width: 0; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .menu { font-weight: 600; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 13px; font-weight: 600; color: var(--muted); background: var(--bg); }
+  tr:last-child td { border-bottom: 0; }
+  td .file { white-space: nowrap; }
+
+  .callout {
+    display: grid; gap: 6px; border-radius: 10px; padding: 16px 18px;
+    background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+  }
+  .callout strong { color: var(--warn); }
+
+  .notify {
+    display: inline-flex; gap: 6px; align-items: center;
+    font-size: 14px; border: 1px solid var(--line); background: var(--surface);
+    border-radius: 8px; padding: 4px 10px; white-space: nowrap;
+  }
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); }
+
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+  details + details { margin-top: -6px; }
+  summary { cursor: pointer; font-weight: 600; }
+  summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  details > div { margin-top: 10px; display: grid; gap: 8px; color: var(--fg); }
+  .faq { display: grid; gap: 12px; }
+
+  footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 20px; display: grid; gap: 6px; }
+
+  @media (max-width: 480px) {
+    body { padding-block: 24px 48px; }
+    .card { padding: 16px; }
+  }
+
+  .download {
+    display: inline-flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    background: var(--accent); color: var(--surface); text-decoration: none;
+    font-weight: 600; border-radius: 8px; padding: 10px 16px;
+  }
+  .download small { font-weight: 400; opacity: 0.85; font-size: 13px; }
+  .download:hover { filter: brightness(1.08); }
+  .download:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+</style>
+<style>html{color-scheme:light}body{margin:0}*{box-sizing:border-box}</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">13_콘텐츠기획팀 · 업무 자동화</div>
+    <h1>GHS 업로드 가이드</h1>
+    <p class="lede">Final Cut 최종 라이브러리를 서버에 우클릭 한 번으로 올려요. 압축, 번호 붙이기, 업로드, 파일 검사까지 알아서 진행돼요.</p>
+    <div class="route" aria-label="업로드 경로">
+      <span>내 Mac의 .fcpbundle</span><i>→</i><span>1_GHS / 13_콘텐츠기획팀 / 01_GHS_라이브러리 / 01_릴_사운드_라이브러리</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="install">
+    <div class="section-head">
+      <h2 id="install">설치</h2><span class="tag">처음 한 번만</span>
+    </div>
+    <ol class="steps">
+      <li><div><a class="download" href="GHS-upload-installer.zip" download="GHS업로드_설치.zip">⬇ 설치 파일 받기 <small>GHS업로드_설치.zip · 14KB</small></a><div class="sub">받은 zip을 더블클릭해서 압축을 풀어요.</div></div></li>
+      <li><div><span class="file">설치.command</span>를 더블클릭해요.
+        <div class="sub">"Apple이 악성 코드가 없음을 확인할 수 없습니다" 창이 뜨면 정상이에요. <strong>휴지통으로 이동은 누르지 말고 '완료(Done)'</strong>를 눌러요.</div></div></li>
+      <li><div><span class="menu">시스템 설정 → 개인정보 보호 및 보안</span>을 열고 아래로 스크롤해서 <strong>'그래도 열기'</strong>를 눌러요. 비밀번호(또는 Touch ID)를 입력하고, 다시 뜨는 창에서 <strong>열기</strong>를 눌러요.
+        <div class="sub">'그래도 열기' 버튼은 차단된 뒤 약 1시간 동안만 보여요. 안 보이면 2번부터 다시 하세요.</div></div></li>
+      <li><div>터미널 창에 <strong>✅ 설치 완료!</strong>가 뜨면 아무 키나 눌러 닫아요. Finder가 잠깐 다시 시작돼요.</div></li>
+    </ol>
+    <details>
+      <summary>시스템 설정이 어렵다면: 터미널로 설치하기</summary>
+      <div>
+        <p>1. <strong>터미널</strong> 앱을 열어요.</p>
+        <p>2. <code>bash </code>(bash 다음에 한 칸 띄우기)를 입력하고, Finder에서 <span class="file">설치.command</span>를 터미널 창으로 끌어다 놓은 뒤 엔터를 쳐요.</p>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="upload">
+    <div class="section-head">
+      <h2 id="upload">올리는 방법</h2>
+    </div>
+    <ol class="steps">
+      <li><div><strong>서버 연결</strong>: Finder에서 <code>⌘ K</code> → <code>smb://GHS</code> → 회사 계정으로 로그인 → <span class="file">1_GHS</span> 선택</div></li>
+      <li><div><strong>올릴 라이브러리만 닫기</strong>: Final Cut에서 <span class="menu">파일 → 라이브러리 닫기</span>
+        <div class="sub">Final Cut 자체는 켜 둬도 괜찮아요. 올리려는 라이브러리만 닫혀 있으면 돼요.</div></div></li>
+      <li><div>Finder에서 <span class="file">.fcpbundle</span>(보라색 별 아이콘)을 <span class="menu">우클릭 → 빠른 동작 → GHS 업로드</span>
+        <div class="sub">메뉴가 안 보이면 빠른 동작 → 사용자화…에서 'GHS 업로드'를 체크하세요. 여러 개를 한꺼번에 선택해도 하나씩 차례로 올라가요.</div></div></li>
+      <li><div>오른쪽 위 알림을 확인하면 끝이에요.
+        <div class="flow" style="margin-top:8px">
+          <span class="notify">⏳ 압축 중…</span><span aria-hidden="true">→</span>
+          <span class="notify">⏳ 서버로 올리는 중…</span><span aria-hidden="true">→</span>
+          <span class="notify">✅ 업로드 완료</span>
+        </div></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="numbering">
+    <div class="section-head">
+      <h2 id="numbering">번호는 자동으로 붙어요</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>라이브러리 이름</th><th>서버에 올라가는 이름</th><th>규칙</th></tr></thead>
+        <tbody>
+          <tr><td><span class="file">280_할머니와나</span></td><td><span class="file">280_할머니와나.zip</span></td><td>이름에 있는 번호를 그대로 써요</td></tr>
+          <tr><td><span class="file">할머니와나</span></td><td><span class="file">280_할머니와나.zip</span></td><td>서버에 같은 제목이 있으면 그 번호를 다시 써요</td></tr>
+          <tr><td><span class="file">새영상</span></td><td><span class="file">282_새영상.zip</span></td><td>처음 올리면 서버의 마지막 번호 + 1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="reupload">
+    <div class="section-head">
+      <h2 id="reupload">수정본 다시 올리기</h2>
+    </div>
+    <p>같은 번호의 파일이 서버에 이미 있으면 <strong>"덮어쓸까요?"</strong> 창이 떠요. <strong>덮어쓰기</strong>를 누르면 교체되고, <strong>취소</strong>를 누르면 아무것도 바뀌지 않아요.</p>
+    <div class="callout" role="note">
+      <strong>덮어쓰면 기존 파일은 남지 않아요</strong>
+      <span>꼭 맞는 파일인지 확인하고 누르세요. 새 파일이 서버에 다 올라가고 검사까지 끝난 뒤에 기존 파일을 지우기 때문에, 업로드가 중간에 실패해도 기존 파일은 그대로 있어요.</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="trouble">
+    <div class="section-head">
+      <h2 id="trouble">이런 알림이 뜨면</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>알림</th><th>해결 방법</th></tr></thead>
+        <tbody>
+          <tr><td>서버(1_GHS)가 연결돼 있지 않아요</td><td>올리는 방법 1번(서버 연결)을 다시 해 주세요. 회사 밖이면 VPN을 먼저 켜세요.</td></tr>
+          <tr><td>Final Cut에서 열려 있어요</td><td>Final Cut에서 그 라이브러리를 닫고 다시 해 주세요.</td></tr>
+          <tr><td>Final Cut 라이브러리가 아니라서 건너뛰어요</td><td><span class="file">.fcpbundle</span> 파일만 올릴 수 있어요.</td></tr>
+          <tr><td>서버 복사에 실패했어요</td><td>서버 폴더에 쓰기 권한이 있는지 확인하고, 없으면 서버 관리자에게 요청하세요.</td></tr>
+          <tr><td>처음 실행 때 '접근 허용', '알림 허용' 창</td><td><strong>허용</strong>을 눌러 주세요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="faq">
+    <div class="section-head">
+      <h2 id="faq">자주 묻는 질문</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>Final Cut이 켜져 있으면 업로드가 안 되나요?</summary>
+        <div><p>아니에요. Final Cut이 켜져 있어도 올라가요. <strong>올리려는 그 라이브러리가 열려 있을 때만</strong> 멈춰요. 열린 채로 압축하면 저장 중인 상태로 압축돼서 서버에 깨진 라이브러리가 올라갈 수 있기 때문이에요.</p></div>
+      </details>
+      <details>
+        <summary>Claude가 깔려 있어야 하나요?</summary>
+        <div><p>아니요. macOS에 원래 있는 기능(빠른 동작)과 스크립트로만 동작해요.</p></div>
+      </details>
+      <details>
+        <summary>얼마나 걸려요?</summary>
+        <div><p>라이브러리 크기에 따라 달라요. 1GB 안팎이면 몇 분 걸려요. 끝나면 알림이 떠요.</p></div>
+      </details>
+      <details>
+        <summary>업로드 기록은 어디서 봐요?</summary>
+        <div><p><code>~/Library/Logs/GHS업로드.log</code>에 남아요.</p></div>
+      </details>
+      <details>
+        <summary>새 버전이 나오면 어떻게 해요?</summary>
+        <div><p>새 <span class="file">GHS업로드_설치.zip</span>을 받아서 같은 방법으로 다시 설치하면 덮어써져요.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <footer>
+    <span>업데이트 날짜: 2026-11-06</span>
+    <span>설치 위치: <code>~/Library/Application Support/GHS업로드/</code>, <code>~/Library/Services/GHS 업로드.workflow</code></span>
+  </footer>
+</div>
+</body>
+</html>
