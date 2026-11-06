@@ -73,7 +73,12 @@
   .field .value { font-weight: 600; overflow-wrap: anywhere; }
   .arrow { color: var(--accent); font-weight: 600; }
 
-  .progress { height: 8px; background: var(--code-bg); border-radius: 999px; overflow: hidden; }
+  .progress-wrap { display: grid; gap: 6px; }
+  .progress-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .pct { font-size: 22px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .bytes { font-family: var(--font-mono); font-size: 14px; color: var(--fg); font-variant-numeric: tabular-nums; }
+  .progress-sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.2em; }
+  .progress { height: 10px; background: var(--code-bg); border-radius: 999px; overflow: hidden; }
   .progress > div { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s; }
 
   .msg { border-radius: 8px; padding: 12px 14px; font-size: 15px; }
@@ -160,7 +165,14 @@
       <button type="button" class="btn" id="btn-upload" disabled>⬆ 업로드</button>
       <span class="muted" id="upload-status"></span>
     </div>
-    <div class="progress" id="progress" hidden><div id="bar"></div></div>
+    <div class="progress-wrap" id="progress-wrap" hidden>
+      <div class="progress-meta">
+        <span class="pct" id="pct">0%</span>
+        <span class="bytes" id="bytes">0 MB / 0 MB</span>
+      </div>
+      <div class="progress" id="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="bar"></div></div>
+      <div class="progress-sub" id="progress-sub"></div>
+    </div>
     <div id="result" class="msg" hidden></div>
   </section>
 </div>
@@ -396,7 +408,7 @@ window.ghsZipStream = async function (rootName, entries, sink, onBytes) {
   async function doUpload() {
     $("confirm").hidden = true;
     ["btn-upload", "btn-file", "btn-lib", "btn-folder"].forEach((id) => $(id).disabled = true);
-    $("progress").hidden = false; $("bar").style.width = "0%";
+    $("progress-wrap").hidden = false; $("bar").style.width = "0%"; $("progress-sub").textContent = "";
     $("upload-status").textContent = src.kind === "lib" ? "압축하면서 올리는 중… 창을 닫지 마세요." : "올리는 중… 창을 닫지 마세요.";
     let w = null;
     try {
@@ -406,7 +418,25 @@ window.ghsZipStream = async function (rootName, entries, sink, onBytes) {
       const fh = await dir.getFileHandle(writeName, { create: true });
       w = await fh.createWritable(); // 끝날 때까지 기존 파일은 그대로 (임시 파일에 쓴 뒤 교체)
       let sent = 0; const total = Math.max(1, src.total);
-      const tick = (n) => { sent += n; $("bar").style.width = Math.min(100, sent / total * 100).toFixed(1) + "%"; };
+      const t0 = performance.now(); let lastPaint = 0;
+      const paint = (force) => {
+        const now = performance.now();
+        if (!force && now - lastPaint < 100) return; // 화면 갱신은 0.1초마다
+        lastPaint = now;
+        const pct = Math.min(100, sent / total * 100);
+        $("bar").style.width = pct.toFixed(1) + "%";
+        $("progress").setAttribute("aria-valuenow", pct.toFixed(0));
+        $("pct").textContent = pct.toFixed(1) + "%";
+        $("bytes").textContent = fmtSize(Math.min(sent, total)) + " / " + fmtSize(total);
+        const sec = (now - t0) / 1000;
+        if (sec > 1 && sent > 0) {
+          const speed = sent / sec;
+          const left = Math.max(0, (total - sent) / speed);
+          $("progress-sub").textContent = fmtSize(speed) + "/s · 남은 시간 약 " + (left >= 60 ? Math.floor(left / 60) + "분 " + Math.round(left % 60) + "초" : Math.round(left) + "초");
+        }
+      };
+      const tick = (n) => { sent += n; paint(false); };
+      paint(true);
       if (src.kind === "zip") {
         const counter = new TransformStream({ transform(chunk, ctl) { tick(chunk.byteLength); ctl.enqueue(chunk); } });
         await src.file.stream().pipeThrough(counter).pipeTo(w); w = null;
@@ -420,7 +450,7 @@ window.ghsZipStream = async function (rootName, entries, sink, onBytes) {
       if (plan.existing && plan.existing.nfc !== nfc(plan.destName)) {
         try { await dir.removeEntry(plan.existing.raw); } catch {}
       }
-      $("bar").style.width = "100%";
+      sent = total; paint(true); $("progress-sub").textContent = "완료";
       showResult("ok", "✅ " + plan.destName + " (" + fmtSize(saved.size) + ") 업로드 완료");
       $("upload-status").textContent = "";
       src = null; $("file-input").value = ""; $("fcp-check").checked = false; await refreshPlan();
