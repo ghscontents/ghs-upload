@@ -133,6 +133,21 @@
   .download small { font-weight: 400; opacity: 0.85; font-size: 13px; }
   .download:hover { filter: brightness(1.08); }
   .download:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  button.download { border: 0; cursor: pointer; font: inherit; font-weight: 600; }
+  .setup-card { display: grid; gap: 12px; }
+  .cmd {
+    margin-top: 10px; font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+    background: var(--code-bg); border-radius: 8px; padding: 10px 12px;
+    overflow-x: auto; white-space: nowrap; user-select: all;
+  }
+  .quick-links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--fg);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 14px;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>
 <style>html{color-scheme:light}body{margin:0}*{box-sizing:border-box}</style>
 </head>
@@ -145,11 +160,45 @@
     <div class="route" aria-label="업로드 경로">
       <span>내 Mac의 .fcpbundle</span><i>→</i><span>1_GHS / 13_콘텐츠기획팀 / 01_GHS_라이브러리 / 01_릴_사운드_라이브러리</span>
     </div>
+    <div class="header-actions">
+      <a class="download" href="#setup-section">⚙ 환경설정 (설치·문제 해결)</a>
+      <a class="chip" href="#upload">올리는 방법 보기</a>
+    </div>
   </header>
+
+  <section aria-labelledby="setup" id="setup-section">
+    <div class="section-head">
+      <h2 id="setup">⚙ 환경설정</h2><span class="tag">설치 · 막힐 때도 이것부터</span>
+    </div>
+    <p>명령어 한 줄로 <strong>설치, 보안 차단 해제, 서버 연결 확인, 쓰기 권한 확인</strong>까지 한 번에 해요. 처음 설치할 때도, 업로드가 안 될 때도 이걸 실행하면 돼요.</p>
+    <div class="card setup-card">
+      <ol class="steps">
+        <li><div><button type="button" class="download" id="copy-btn">📋 명령어 복사</button>
+          <div class="cmd" id="cmd-text">curl -fsSL https://ghscontents.github.io/ghs-upload/setup.sh | bash</div>
+          <div class="sub" id="copy-status" aria-live="polite">버튼을 누르면 위 명령어가 복사돼요.</div></div></li>
+        <li><div><strong>터미널</strong>을 열어요. <span class="sub">⌘ + 스페이스 → "터미널" 입력 → 엔터</span></div></li>
+        <li><div>터미널에 <code>⌘ V</code>로 붙여넣고 <strong>엔터</strong>를 눌러요.</div></li>
+        <li><div>마지막에 <strong>🎉 모두 정상이에요!</strong>가 나오면 끝이에요. ❌ 항목이 있으면 옆에 적힌 해결 방법대로 한 뒤 같은 명령어를 다시 실행해요.</div></li>
+      </ol>
+    </div>
+    <div class="quick-links">
+      <span class="sub">설정 화면 바로가기</span>
+      <a class="chip" href="smb://GHS">🔗 회사 서버 연결</a>
+      <a class="chip" href="x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension">🔒 개인정보 보호 및 보안</a>
+      <a class="chip" href="x-apple.systempreferences:com.apple.Notifications-Settings.extension">🔔 알림</a>
+    </div>
+    <details>
+      <summary>이 명령어가 하는 일</summary>
+      <div>
+        <p>1. macOS 확인 → 2. 우클릭 메뉴 'GHS 업로드' 설치·업데이트 → 3. macOS 보안 차단 표시 제거 → 4. 회사 서버(1_GHS) 연결 확인, 안 돼 있으면 연결 창을 띄우고 기다림 → 5. 업로드 폴더 쓰기 권한 확인(빈 파일을 썼다가 바로 지움) → 6. 테스트 알림 → 결과 요약</p>
+        <p>비밀번호나 개인 정보를 보내지 않아요. 스크립트 내용은 <a href="setup.sh" target="_blank" rel="noopener">여기</a>에서 볼 수 있어요.</p>
+      </div>
+    </details>
+  </section>
 
   <section aria-labelledby="install">
     <div class="section-head">
-      <h2 id="install">설치</h2><span class="tag">처음 한 번만</span>
+      <h2 id="install">설치 파일로 직접 설치</h2><span class="tag">환경설정이 안 될 때</span>
     </div>
     <ol class="steps">
       <li><div><a class="download" href="GHS-upload-installer.zip" download="GHS업로드_설치.zip">⬇ 설치 파일 받기 <small>GHS업로드_설치.zip · 14KB</small></a><div class="sub">받은 zip을 더블클릭해서 압축을 풀어요.</div></div></li>
@@ -265,5 +314,24 @@
     <span>설치 위치: <code>~/Library/Application Support/GHS업로드/</code>, <code>~/Library/Services/GHS 업로드.workflow</code></span>
   </footer>
 </div>
+<script>
+  (function () {
+    var btn = document.getElementById("copy-btn");
+    var cmd = document.getElementById("cmd-text");
+    var status = document.getElementById("copy-status");
+    function selectCmd() {
+      var r = document.createRange(); r.selectNodeContents(cmd);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+    btn.addEventListener("click", function () {
+      var text = cmd.textContent.trim();
+      var done = function () { status.textContent = "✅ 복사했어요. 터미널에 ⌘V로 붙여넣고 엔터를 누르세요."; };
+      var fallback = function () { selectCmd(); status.textContent = "명령어를 선택해 뒀어요. ⌘C로 복사해 주세요."; };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+    });
+  })();
+</script>
 </body>
 </html>
