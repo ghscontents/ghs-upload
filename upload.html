@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>GHS 웹 업로드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: 한 장짜리 작업 카드. 위에서 아래로 '폴더 연결 → 파일 선택 → 이름 확인 → 업로드' 순서 */
+  :root {
+    --bg: #f6f7f8; --surface: #ffffff; --fg: #1b2228; --muted: #5d6973; --line: #dfe3e7;
+    --accent: #0f6b62; --accent-soft: #e3f1ef; --warn: #9a4a00; --warn-soft: #fdf0e3;
+    --bad: #b42318; --bad-soft: #fdecea; --ok: #23733a; --ok-soft: #e6f4ea; --code-bg: #eef1f3;
+    --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12171b; --surface: #1a2126; --fg: #e6eaed; --muted: #9aa6b0; --line: #2b343b;
+      --accent: #5cc4b6; --accent-soft: #173431; --warn: #f0a75c; --warn-soft: #33261a;
+      --bad: #ff8a80; --bad-soft: #3a1d1b; --ok: #6fcf8a; --ok-soft: #173322; --code-bg: #232c33; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12171b; --surface: #1a2126; --fg: #e6eaed; --muted: #9aa6b0; --line: #2b343b;
+    --accent: #5cc4b6; --accent-soft: #173431; --warn: #f0a75c; --warn-soft: #33261a;
+    --bad: #ff8a80; --bad-soft: #3a1d1b; --ok: #6fcf8a; --ok-soft: #173322; --code-bg: #232c33; color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.65;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 24px; }
+  h1 { margin: 0; font-size: clamp(26px, 5vw, 32px); line-height: 1.3; text-wrap: balance; }
+  h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--accent); }
+  .muted { color: var(--muted); font-size: 14px; }
+  .mono { font-family: var(--font-mono); font-size: 0.88em; overflow-wrap: anywhere; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 14px; }
+  .step-head { display: flex; align-items: center; gap: 10px; }
+  .num {
+    flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent); color: var(--surface); font-size: 13px; font-weight: 600;
+  }
+  .card.done .num { background: var(--ok); }
+  .card.locked { opacity: 0.55; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 18px; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--surface);
+  }
+  .btn.secondary { background: var(--surface); color: var(--accent); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+  .field {
+    display: grid; gap: 4px; background: var(--code-bg); border-radius: 8px; padding: 12px 14px; min-width: 0;
+  }
+  .field .label { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+  .field .value { font-weight: 600; overflow-wrap: anywhere; }
+  .arrow { color: var(--accent); font-weight: 600; }
+
+  .progress { height: 8px; background: var(--code-bg); border-radius: 999px; overflow: hidden; }
+  .progress > div { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s; }
+
+  .msg { border-radius: 8px; padding: 12px 14px; font-size: 15px; }
+  .msg.ok { background: var(--ok-soft); color: var(--ok); }
+  .msg.bad { background: var(--bad-soft); color: var(--bad); }
+  .msg.warn { background: var(--warn-soft); color: var(--warn); }
+
+  .confirm { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 10px; padding: 16px; display: grid; gap: 12px; }
+  .confirm strong { color: var(--warn); }
+
+  .unsupported { display: grid; gap: 8px; }
+  @media (prefers-reduced-motion: reduce) { .progress > div { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:grid; gap:10px">
+    <div class="eyebrow">GHS 업로드 · 웹</div>
+    <h1>GHS 웹 업로드</h1>
+    <p class="muted">zip 파일을 골라서 <span class="mono">01_릴_사운드_라이브러리</span>에 올려요. 번호 붙이기와 덮어쓰기 확인은 우클릭 도구와 같은 규칙이에요. <a href="./">← 가이드로 돌아가기</a></p>
+  </header>
+
+  <div id="unsupported" class="msg warn unsupported" hidden>
+    <strong>이 브라우저에서는 웹 업로드를 쓸 수 없어요.</strong>
+    <span>크롬(Chrome) 또는 엣지(Edge)로 이 페이지를 열어 주세요. 사파리와 파이어폭스는 지원하지 않아요. 우클릭 도구는 어느 브라우저든 상관없이 쓸 수 있어요.</span>
+  </div>
+
+  <section class="card" id="card-folder">
+    <div class="step-head"><span class="num">1</span><h2>업로드 폴더 연결 <span class="muted">(처음 한 번만)</span></h2></div>
+    <p class="muted">먼저 Finder에서 회사 서버(⌘K → <span class="mono">smb://GHS</span>)를 연결한 뒤, 아래 버튼을 눌러 <span class="mono">1_GHS → 13_콘텐츠기획팀 → 01_GHS_라이브러리 → 01_릴_사운드_라이브러리</span> 폴더를 선택하고 <strong>'열기'</strong>, 이어서 <strong>'파일 수정 허용'</strong>을 눌러요.</p>
+    <div class="row">
+      <button type="button" class="btn secondary" id="btn-folder">📁 폴더 연결</button>
+      <span class="muted" id="folder-status">연결된 폴더 없음</span>
+    </div>
+  </section>
+
+  <section class="card locked" id="card-file">
+    <div class="step-head"><span class="num">2</span><h2>파일 선택</h2></div>
+    <input type="file" id="file-input" accept=".zip,application/zip" hidden>
+    <div class="row">
+      <button type="button" class="btn" id="btn-file" disabled>📄 파일 선택</button>
+      <span class="muted" id="file-hint">Final Cut 라이브러리를 압축한 .zip 파일</span>
+    </div>
+    <div class="row" id="name-preview" hidden style="align-items:stretch">
+      <div class="field" style="flex:1 1 220px">
+        <span class="label">선택한 파일</span>
+        <span class="value mono" id="sel-name"></span>
+        <span class="muted" id="sel-size"></span>
+      </div>
+      <div class="arrow" style="align-self:center">→</div>
+      <div class="field" style="flex:1 1 220px">
+        <span class="label">서버에 올라갈 이름</span>
+        <span class="value mono" id="dest-name"></span>
+        <span class="muted" id="dest-rule"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card locked" id="card-upload">
+    <div class="step-head"><span class="num">3</span><h2>업로드</h2></div>
+    <div id="confirm" class="confirm" hidden>
+      <strong id="confirm-title"></strong>
+      <span>덮어쓰면 기존 파일은 남지 않아요.</span>
+      <div class="row">
+        <button type="button" class="btn" id="btn-overwrite">덮어쓰기</button>
+        <button type="button" class="btn secondary" id="btn-cancel">취소</button>
+      </div>
+    </div>
+    <div class="row">
+      <button type="button" class="btn" id="btn-upload" disabled>⬆ 업로드</button>
+      <span class="muted" id="upload-status"></span>
+    </div>
+    <div class="progress" id="progress" hidden><div id="bar"></div></div>
+    <div id="result" class="msg" hidden></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const EXPECTED = "01_릴_사운드_라이브러리";
+  const $ = (id) => document.getElementById(id);
+  const nfc = (s) => (s || "").normalize("NFC");
+  const supported = "showDirectoryPicker" in window;
+  let dir = null, file = null, plan = null;
+
+  if (!supported) {
+    $("unsupported").hidden = false;
+    $("btn-folder").disabled = true;
+  }
+
+  // ---- 폴더 핸들 저장 (IndexedDB) ----
+  const DB = "ghs-upload", STORE = "kv";
+  function idb() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open(DB, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  }
+  async function kvGet(k) { try { const d = await idb(); return await new Promise((res) => { const q = d.transaction(STORE).objectStore(STORE).get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }); } catch { return undefined; } }
+  async function kvSet(k, v) { try { const d = await idb(); d.transaction(STORE, "readwrite").objectStore(STORE).put(v, k); } catch {} }
+
+  function setFolder(h, granted) {
+    dir = granted ? h : null;
+    const name = h ? nfc(h.name) : "";
+    if (h && granted) {
+      $("folder-status").textContent = (name === EXPECTED ? "✅ 연결됨: " : "⚠️ 연결됨(폴더 이름 확인 필요): ") + name;
+      $("card-folder").classList.add("done");
+      $("btn-folder").textContent = "📁 다른 폴더로 변경";
+    } else if (h) {
+      $("folder-status").textContent = "🔒 '" + name + "' 다시 허용이 필요해요. 버튼을 눌러 주세요.";
+      $("btn-folder").textContent = "🔓 폴더 다시 허용";
+    }
+    $("card-file").classList.toggle("locked", !dir);
+    $("btn-file").disabled = !dir;
+    refreshPlan();
+  }
+
+  let savedHandle = null;
+  (async () => {
+    if (!supported) return;
+    savedHandle = await kvGet("dir");
+    if (savedHandle) {
+      try { setFolder(savedHandle, (await savedHandle.queryPermission({ mode: "readwrite" })) === "granted"); }
+      catch { savedHandle = null; }
+    }
+  })();
+
+  $("btn-folder").addEventListener("click", async () => {
+    try {
+      if (savedHandle && !dir) {
+        const p = await savedHandle.requestPermission({ mode: "readwrite" });
+        if (p === "granted") { setFolder(savedHandle, true); return; }
+      }
+      const h = await window.showDirectoryPicker({ id: "ghs-upload", mode: "readwrite" });
+      if (nfc(h.name) !== EXPECTED) {
+        $("folder-status").textContent = "⚠️ 선택한 폴더가 '" + nfc(h.name) + "'예요. '" + EXPECTED + "'를 선택해 주세요.";
+        return;
+      }
+      savedHandle = h; await kvSet("dir", h); setFolder(h, true);
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+      $("folder-status").textContent = "폴더를 연결하지 못했어요. 서버가 Finder에 연결돼 있는지 확인해 주세요.";
+    }
+  });
+
+  // ---- 파일 선택 ----
+  $("btn-file").addEventListener("click", () => $("file-input").click());
+  $("file-input").addEventListener("change", () => {
+    file = $("file-input").files[0] || null;
+    $("result").hidden = true; $("confirm").hidden = true;
+    refreshPlan();
+  });
+
+  function fmtSize(n) {
+    if (n >= 1024 ** 3) return (n / 1024 ** 3).toFixed(2) + " GB";
+    if (n >= 1024 ** 2) return (n / 1024 ** 2).toFixed(1) + " MB";
+    return Math.max(1, Math.round(n / 1024)) + " KB";
+  }
+
+  // ---- 번호 규칙 (우클릭 도구와 동일) ----
+  async function listZips() {
+    const names = [];
+    for await (const [name, h] of dir.entries()) {
+      if (h.kind === "file" && /\.zip$/i.test(name) && !name.startsWith(".")) names.push({ raw: name, nfc: nfc(name) });
+    }
+    return names;
+  }
+  async function makePlan() {
+    const base = nfc(file.name).replace(/\.zip$/i, "");
+    const zips = await listZips();
+    let num, title, rule;
+    const m = base.match(/^(\d+)_(.+)$/);
+    if (m) { num = parseInt(m[1], 10); title = m[2]; rule = "파일 이름의 번호를 그대로 써요"; }
+    else {
+      title = base;
+      const same = zips.find((z) => z.nfc.replace(/^\d+_/, "").replace(/\.zip$/i, "") === base && /^\d+_/.test(z.nfc));
+      if (same) { num = parseInt(same.nfc, 10); rule = "서버에 같은 제목이 있어서 그 번호를 다시 써요"; }
+      else {
+        const max = zips.reduce((a, z) => { const n = parseInt(z.nfc, 10); return isNaN(n) ? a : Math.max(a, n); }, 0);
+        num = max + 1; rule = "서버의 마지막 번호(" + max + ") + 1";
+      }
+    }
+    const destName = (m ? base : num + "_" + title) + ".zip";
+    const existing = zips.find((z) => parseInt(z.nfc, 10) === num && /^\d+_/.test(z.nfc));
+    return { destName, rule, existing };
+  }
+
+  async function refreshPlan() {
+    plan = null;
+    $("name-preview").hidden = !file;
+    if (file) {
+      $("sel-name").textContent = file.name;
+      $("sel-size").textContent = fmtSize(file.size);
+    }
+    const ready = !!(dir && file);
+    $("card-upload").classList.toggle("locked", !ready);
+    $("btn-upload").disabled = true;
+    if (!file) return;
+    if (!/\.zip$/i.test(file.name)) {
+      $("dest-name").textContent = "—"; $("dest-rule").textContent = ".zip 파일만 올릴 수 있어요";
+      return;
+    }
+    if (!dir) { $("dest-name").textContent = "폴더를 먼저 연결해 주세요"; $("dest-rule").textContent = ""; return; }
+    try {
+      plan = await makePlan();
+      $("dest-name").textContent = plan.destName;
+      $("dest-rule").textContent = plan.rule + (plan.existing ? " · ⚠️ 같은 번호 파일 있음: " + plan.existing.nfc : "");
+      $("btn-upload").disabled = false;
+    } catch (e) {
+      $("dest-name").textContent = "—";
+      $("dest-rule").textContent = "서버 폴더를 읽지 못했어요. 서버 연결을 확인하고 폴더를 다시 허용해 주세요.";
+    }
+  }
+
+  // ---- 업로드 ----
+  function showResult(kind, text) { const r = $("result"); r.className = "msg " + kind; r.textContent = text; r.hidden = false; }
+
+  async function isZip(f) {
+    const b = new Uint8Array(await f.slice(0, 4).arrayBuffer());
+    return b[0] === 0x50 && b[1] === 0x4b && b[2] === 0x03 && b[3] === 0x04;
+  }
+
+  async function doUpload() {
+    $("confirm").hidden = true;
+    const btns = ["btn-upload", "btn-file", "btn-folder"]; btns.forEach((id) => $(id).disabled = true);
+    $("progress").hidden = false; $("bar").style.width = "0%";
+    $("upload-status").textContent = "올리는 중… 창을 닫지 마세요.";
+    try {
+      // 회사 서버(SMB)는 한글 이름을 자모 분리형(NFD)으로 다뤄야 안전해요 (우클릭 도구에서 확인된 문제)
+      const sameName = plan.existing && plan.existing.nfc === nfc(plan.destName);
+      const writeName = sameName ? plan.existing.raw : plan.destName.normalize("NFD");
+      const fh = await dir.getFileHandle(writeName, { create: true });
+      const w = await fh.createWritable(); // 끝날 때까지 기존 파일은 그대로 (임시 파일에 쓴 뒤 교체)
+      let sent = 0; const total = file.size;
+      const counter = new TransformStream({
+        transform(chunk, ctl) { sent += chunk.byteLength; $("bar").style.width = (sent / total * 100).toFixed(1) + "%"; ctl.enqueue(chunk); }
+      });
+      await file.stream().pipeThrough(counter).pipeTo(w);
+      const saved = await fh.getFile();
+      if (saved.size !== total) throw new Error("size");
+      if (plan.existing && plan.existing.nfc !== nfc(plan.destName)) {
+        try { await dir.removeEntry(plan.existing.raw); } catch {}
+      }
+      $("bar").style.width = "100%";
+      showResult("ok", "✅ " + plan.destName + " (" + fmtSize(total) + ") 업로드 완료");
+      $("upload-status").textContent = "";
+      file = null; $("file-input").value = ""; await refreshPlan();
+    } catch (e) {
+      showResult("bad", "업로드에 실패했어요. 서버 연결을 확인하고 다시 시도해 주세요. 기존 파일은 바뀌지 않았어요.");
+      $("upload-status").textContent = "";
+    } finally {
+      $("btn-file").disabled = !dir; $("btn-folder").disabled = !supported;
+      if (plan && file) $("btn-upload").disabled = false;
+    }
+  }
+
+  $("btn-upload").addEventListener("click", async () => {
+    if (!plan || !file) return;
+    $("result").hidden = true;
+    if (!(await isZip(file))) { showResult("bad", "zip 파일이 아니거나 손상된 파일이에요. Finder에서 라이브러리를 우클릭 → 압축해서 다시 만들어 주세요."); return; }
+    plan = await makePlan(); // 업로드 직전에 서버 상태 다시 확인
+    $("dest-name").textContent = plan.destName;
+    if (plan.existing) {
+      $("confirm-title").textContent = plan.existing.nfc === nfc(plan.destName)
+        ? "서버에 이미 '" + plan.existing.nfc + "'이(가) 있어요. 새 버전으로 덮어쓸까요?"
+        : "서버에 같은 번호 파일 '" + plan.existing.nfc + "'이(가) 있어요. '" + plan.destName + "'(으)로 덮어쓸까요?";
+      $("confirm").hidden = false;
+      $("btn-overwrite").focus();
+      return;
+    }
+    doUpload();
+  });
+  $("btn-overwrite").addEventListener("click", doUpload);
+  $("btn-cancel").addEventListener("click", () => { $("confirm").hidden = true; $("upload-status").textContent = "업로드를 취소했어요."; });
+})();
+</script>
+</body>
+</html>
